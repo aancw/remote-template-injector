@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 zip = "0.6.4"
 clap = { version = "4.1.4", features = ["derive"] }
+xmltree = "0.10.3"
