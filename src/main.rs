@@ -22,6 +22,10 @@ struct Cli {
     /// File to be injected
     #[clap(short, long)]
     file: String,
+
+    /// Output location of modified docx file
+    #[clap(short, long)]
+    output: String,
 }
 
 
@@ -45,6 +49,24 @@ fn edit_xml_file(file_path: &str, new_target: &str)  {
 
     let s = String::from_utf8(buf).unwrap();
     fs::write(file_path, s).unwrap();
+}
+
+fn check_setting_exist(file_path : &str) -> bool {
+
+    let file = fs::File::open(file_path).unwrap();
+    let mut archive = ZipArchive::new(file).unwrap();
+
+    // Check if the zip file contains "word/_rels/settings.xml.rels"
+    for i in 0..archive.len() {
+        let mut zip_file = match archive.by_index(i) {
+            Ok(file) => file,
+            Err(_) => continue, // Unable to read the file inside the zip file
+        };
+        if zip_file.name() == "word/_rels/settings.xml.rels" {
+            return true;
+        }
+    }
+    false 
 }
 
 
@@ -107,11 +129,19 @@ fn main() -> io::Result<()>{
 
     unzip(zipfile, dest_dir).unwrap();  */
 
-    let xmlout = "/tmp/test2/settings-new.xml";
+/*     let xmlout = "/tmp/test2/settings-new.xml";
 
     let file_path = "/tmp/test2/settings.xml";
     let new_target = "file:///new_target.dotx";
-    edit_xml_file(file_path, new_target);
+    edit_xml_file(file_path, new_target); */
+
+    if check_setting_exist("/tmp/test2/report.docx"){
+        println!("{}", "Settings exist");
+    }else{
+        println!("{}", "no setting exist");
+    }
+
+
 /*     match edit_xml_file(file_path, new_target) {
         Err(e) => println!("{:?}", e),
         _ => ()
