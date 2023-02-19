@@ -9,3 +9,4 @@ edition = "2021"
 zip = "0.6.4"
 clap = { version = "4.1.4", features = ["derive"] }
 xmltree = "0.10.3"
+tempfile = "3.3.0"

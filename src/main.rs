@@ -1,8 +1,7 @@
-
 use clap::Parser;
 use std::io::prelude::*;
-use std::path::{Path, PathBuf};
-use std::{env, fs, fs::File, io, io::BufReader};
+use std::{fs, fs::File, io, path::Path, process::exit};
+use tempfile::tempdir;
 use xmltree::*;
 
 use zip::result::ZipResult;
@@ -28,9 +27,7 @@ struct Cli {
     output: String,
 }
 
-
-fn edit_xml_file(file_path: &str, new_target: &str)  {
-
+fn edit_xml_file(file_path: &str, new_target: &str) {
     // Find the Relationship element and update the value of the Target attribute
 
     let cfg = EmitterConfig {
@@ -42,8 +39,9 @@ fn edit_xml_file(file_path: &str, new_target: &str)  {
     let mut root = Element::parse(File::open(file_path).unwrap()).unwrap();
 
     let name = root.get_mut_child("Relationship").unwrap();
-    name.attributes.insert("Target".to_string(), new_target.to_string());
-    
+    name.attributes
+        .insert("Target".to_string(), new_target.to_string());
+
     let mut buf = Vec::new();
     root.write_with_config(&mut buf, cfg).unwrap();
 
@@ -51,14 +49,25 @@ fn edit_xml_file(file_path: &str, new_target: &str)  {
     fs::write(file_path, s).unwrap();
 }
 
-fn check_setting_exist(file_path : &str) -> bool {
-
-    let file = fs::File::open(file_path).unwrap();
-    let mut archive = ZipArchive::new(file).unwrap();
+fn check_setting_exist(file_path: &str) -> bool {
+    let file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(_) => {
+            eprintln!("Error: Unable to open the zip file.");
+            exit(1); 
+        }
+    };
+    let mut archive = match ZipArchive::new(file) {
+        Ok(archive) => archive,
+        Err(_) => {
+            eprintln!("Error: Unable to read the zip file.");
+            exit(1);
+        }
+    };
 
     // Check if the zip file contains "word/_rels/settings.xml.rels"
     for i in 0..archive.len() {
-        let mut zip_file = match archive.by_index(i) {
+        let zip_file = match archive.by_index(i) {
             Ok(file) => file,
             Err(_) => continue, // Unable to read the file inside the zip file
         };
@@ -66,9 +75,8 @@ fn check_setting_exist(file_path : &str) -> bool {
             return true;
         }
     }
-    false 
+    false
 }
-
 
 fn unzip(zipfile: &str, dest_dir: &str) -> ZipResult<()> {
     let file = fs::File::open(zipfile)?;
@@ -120,44 +128,42 @@ fn zip_dir(dir: &Path, zip: &mut ZipWriter<std::fs::File>, prefix: &Path) -> Zip
     Ok(())
 }
 
-fn main() -> io::Result<()>{
-    //let current_dir = env::current_dir().unwrap();
-    //let current_dir_path = current_dir.as_path();
+fn main() {
+    let cli = Cli::parse();
+    let docx_file = cli.file;
+    let output = cli.output;
+    let target = cli.url;
+    let file_name = Path::new(&docx_file).file_stem().unwrap().to_str().unwrap();
 
-/*     let zipfile = "/tmp/test2/twrp.zip";
-    let dest_dir = "/tmp/test2/";
+    if check_setting_exist(&docx_file) {
+        let temp_dir = tempdir().expect("Failed to create temporary directory");
 
-    unzip(zipfile, dest_dir).unwrap();  */
+        {
+            let temp_dir_path = temp_dir.path();
+            let temp_dir_docx = &temp_dir_path.join(file_name).to_str().unwrap().to_string();
+            let temp_dir_xml = &temp_dir_path
+                .join(format!("{}/word/_rels/settings.xml.rels", file_name))
+                .to_str()
+                .unwrap()
+                .to_string();
 
-/*     let xmlout = "/tmp/test2/settings-new.xml";
+            unzip(&docx_file, &temp_dir_docx);
 
-    let file_path = "/tmp/test2/settings.xml";
-    let new_target = "file:///new_target.dotx";
-    edit_xml_file(file_path, new_target); */
+            edit_xml_file(&temp_dir_xml, &target);
 
-    if check_setting_exist("/tmp/test2/report.docx"){
-        println!("{}", "Settings exist");
-    }else{
-        println!("{}", "no setting exist");
+            let dir = Path::new(&temp_dir_docx);
+            let zipfile = &output;
+
+            let prefix = dir.parent().unwrap();
+
+            let file = fs::File::create(zipfile).unwrap();
+            let mut zip = ZipWriter::new(file);
+
+            zip_dir(dir, &mut zip, prefix).unwrap();
+            zip.finish().unwrap();
+        }
+    } else {
+        eprintln!("Error: The zip file does not contain the file 'word/_rels/settings.xml.rels'.");
+        exit(1);
     }
-
-
-/*     match edit_xml_file(file_path, new_target) {
-        Err(e) => println!("{:?}", e),
-        _ => ()
-    } */
-    //edit_xml_file(file_path, new_target);
-
-    Ok(())
-
-    /* let dir = Path::new("/tmp/test2/twrp");
-    let zipfile = "/tmp/test2/twrp2.zip";
-
-    let prefix = dir.parent().unwrap();
-
-    let file = fs::File::create(zipfile).unwrap();
-    let mut zip = ZipWriter::new(file);
-
-    zip_dir(dir, &mut zip, prefix).unwrap();
-    zip.finish().unwrap(); */
 }
