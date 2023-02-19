@@ -1,11 +1,8 @@
 use clap::Parser;
-use std::io::prelude::*;
-use std::{fs, fs::File, io, path::Path, process::exit};
+use std::{fs, fs::File, io, io::prelude::*, path::Path, process::exit};
 use tempfile::tempdir;
 use xmltree::*;
-
-use zip::result::ZipResult;
-use zip::{ZipArchive, ZipWriter};
+use zip::{result::ZipResult, ZipArchive, ZipWriter};
 
 #[derive(Parser)]
 #[clap(name = "remote-template-injector")]
@@ -54,7 +51,7 @@ fn check_setting_exist(file_path: &str) -> bool {
         Ok(file) => file,
         Err(_) => {
             eprintln!("Error: Unable to open the zip file.");
-            exit(1); 
+            exit(1);
         }
     };
     let mut archive = match ZipArchive::new(file) {
@@ -147,9 +144,9 @@ fn main() {
                 .unwrap()
                 .to_string();
 
-            unzip(&docx_file, &temp_dir_docx);
+            unzip(&docx_file, temp_dir_docx).expect("Error unzipping the docx file");
 
-            edit_xml_file(&temp_dir_xml, &target);
+            edit_xml_file(temp_dir_xml, &target);
 
             let dir = Path::new(&temp_dir_docx);
             let zipfile = &output;
