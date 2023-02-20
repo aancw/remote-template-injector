@@ -146,6 +146,7 @@ fn main() {
 
             unzip(&docx_file, temp_dir_docx).expect("Error unzipping the docx file");
 
+            println!("{}", "Editing remote template url...");
             edit_xml_file(temp_dir_xml, &target);
 
             let dir = Path::new(&temp_dir_docx);
@@ -158,6 +159,8 @@ fn main() {
 
             zip_dir(dir, &mut zip, prefix).unwrap();
             zip.finish().unwrap();
+            println!("Word successfully injected. Generated file: {}", output);
+            println!("{}", "Good Luck!");
         }
     } else {
         eprintln!("Error: The zip file does not contain the file 'word/_rels/settings.xml.rels'.");
