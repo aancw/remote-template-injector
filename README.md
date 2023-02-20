@@ -27,6 +27,10 @@ Word successfully injected. Generated file: /path/to/output.docx
 Good Luck!
 ```
 
+## Demo
+
+![](https://i.imgur.com/KVif6Ar.gif)
+
 ## References
 - https://john-woodman.com/research/vba-macro-remote-template-injection/
 - https://blog.sunggwanchoi.com/remote-template-injection/
