@@ -152,7 +152,7 @@ fn main() {
             let dir = Path::new(&temp_dir_docx);
             let zipfile = &output;
 
-            let prefix = dir.parent().unwrap();
+            let prefix = dir;
 
             let file = fs::File::create(zipfile).unwrap();
             let mut zip = ZipWriter::new(file);
